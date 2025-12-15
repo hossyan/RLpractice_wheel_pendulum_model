@@ -1,0 +1,29 @@
+<mujoco model="inverted_pendulum_with_mesh">
+    <compiler assetdir="../stl"/>  
+    <option timestep="0.01" gravity="0 0 -9.81"/>
+
+    <asset>
+        <mesh name="body" file="body.stl"/>
+    </asset>
+
+    <worldbody>
+        <body name="base" pos="0 0 0">
+        <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0.01" contype="1" conaffinity="1" euler="90 0 0"/> 
+        <body name="pendulum" pos="0 0 0.02">
+            <joint name="hinge" type="hinge" axis="0 1 0" range="-90 90" limited="true" damping="1.0"/>
+            <inertial pos="0 0 0.4" mass="1.0" diaginertia="0.1 0.1 0.1"/>
+            <geom type="capsule" fromto="0 0 0 0 0 0.09" size="0.005" rgba="0.2 0.6 0.8 1"/>
+        </body>
+        </body>
+        
+        <!-- 地面 -->
+        <geom type="plane" size="20 20 0.1" pos="0 0 0" rgba="0.0 0.5 0.0 1"/>
+
+        <!-- 照明 -->
+        <light name="light1" pos="0 0 3" dir="0 0 -1" directional="true" castshadow="false"/>
+    </worldbody>
+    
+    <actuator>
+        <motor joint="hinge" ctrlrange="-10 10" gear="1"/>
+    </actuator>
+</mujoco>
