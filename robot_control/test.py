@@ -15,7 +15,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         
         data.ctrl[0] = 1.0 * output_max
-        data.ctrl[1] = 1.0 * output_max
+        data.ctrl[1] = -1.0 * output_max
 
         mujoco.mj_step(model, data)
 
