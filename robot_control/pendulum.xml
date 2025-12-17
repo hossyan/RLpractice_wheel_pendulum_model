@@ -1,4 +1,5 @@
 <mujoco model="inverted_pendulum_with_mesh">
+    <include file="./shared.xml"></include>
     <compiler assetdir="../stl"/>  
     <option timestep="0.001" gravity="0 0 -9.81"/>
 
@@ -29,7 +30,7 @@
         </body>
         
         <!-- 地面 -->
-        <geom type="plane" size="20 20 0.1" pos="0 0 0" rgba="0.0 0.5 0.0 1" contype="1" conaffinity="1" friction="0.6 0.005 0.0001"/>
+        <!-- <geom type="plane" size="20 20 0.1" pos="0 0 0" rgba="0.0 0.5 0.0 1" contype="1" conaffinity="1" friction="0.6 0.005 0.0001"/> -->
 
         <!-- 照明 -->
         <light name="light1" pos="0 0 3" dir="0 0 -1" directional="true" castshadow="false" />
