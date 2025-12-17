@@ -1,24 +1,24 @@
 <mujoco model="inverted_pendulum_with_mesh">
     <compiler assetdir="../stl"/>  
-    <option timestep="0.01" gravity="0 0 -9.81"/>
+    <option timestep="0.001" gravity="0 0 -9.81"/>
 
     <asset>
         <mesh name="body" file="body.stl"/>
-        <mesh name="tire" file="tire.stl"/>
+        <mesh name="wheel" file="wheel.stl"/>
     </asset>
 
     <worldbody>
         <!-- 本体(モータ付き) -->
-        <body name="base" pos="0 0 0.1">
-            <joint type="free"/>
-            <inertial mass="0.541" pos="0 0 0.061" diaginertia="0.001 1e-6 0.001"/>
-            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0.01" contype="1" conaffinity="1" euler="90 0 0"/> 
+        <body name="base" pos="0 0 0.5">
+            <!-- <joint type="free"/> -->
+            <inertial mass="0.541465" pos="0 0 0.061" diaginertia="5.094e-4 3.613e-4 6.404e-4"/>
+            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0" contype="1" conaffinity="1" euler="90 0 0"/> 
         
         <!-- タイヤ左 -->
-            <body name="tire" pos="0 0 0">
-            <joint name="tire_hinge_left" type="hinge" axis="0 1 0" pos="0 0.047 0.020025" damping="0.00005"/>
-            <inertial mass="0.021" diaginertia="1.24e-5 6.234e-6 6.234e-6" pos="0 0 0.03"/>
-            <geom type="mesh" mesh="tire" rgba="0.8 0.8 0.85 1"/>
+            <body name="wheel" pos="-0.047 0 0.0196">
+            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.00005"/>
+            <inertial mass="0.021477" diaginertia="1.2039e-5 6.234e-6 6.234e-6" pos="0 0 0"/>
+            <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1"/>
             </body>
         </body>
         
@@ -28,8 +28,12 @@
         <!-- 照明 -->
         <light name="light1" pos="0 0 3" dir="0 0 -1" directional="true" castshadow="false" />
     </worldbody>
+
+    <contact>
+        <exclude body1="base" body2="wheel"/>
+    </contact>
     
-    <!-- <actuator>
-        <motor joint="hinge" ctrlrange="-10 10" gear="1"/>
-    </actuator> -->
+    <actuator>
+        <motor name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true"/>
+    </actuator> 
 </mujoco>
