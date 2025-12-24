@@ -57,16 +57,23 @@ class robot_env(gym.Env):
         return obs, {}
 
     def step(self, action):
-        # 1コマ（例えば0.01秒）時間を進める処理
-        # a. action（モーター出力）をMuJoCoに伝える
-        # b. 物理シミュレーションを1ステップ進める
-        # c. 新しい状態（観測値）を取得する
-        # d. 報酬（reward）を計算する
-        # e. 転んだかどうかの判定（terminated）をする
+        self.data.ctrl[0] = action[0] # wheel_hinge_left
+        self.data.ctrl[1] = action[1] # wheel_hinge_right
+
+        # 10ms ごとに学習
+        for _ in range(10):
+            mujoco.mj_step(self.model, self.data)
+
+        obs = self._get_obs()
+
+        # 終了判定 45度(0.78rad)より傾くと終了
+        roll = obs[0] 
+        terminated = bool(abs(roll) > 0.78)
+
+        # 報酬
+        reward = 1.0 if not terminated else 0.0
         
-        observation = np.zeros(6, dtype=np.float32) # 仮の観測値
-        reward = 0.0                                # 仮の報酬
-        terminated = False                          # 終了判定
-        truncated = False                           # 時間切れ判定
-        
-        return observation, reward, terminated, truncated, {}
+        truncated = False     # 時間切れならTrue
+        info = {}             # おまけ情報
+
+        return obs, reward, terminated, truncated, info
