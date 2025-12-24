@@ -45,7 +45,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         deriv = (error - pre_error) / dt
         pre_error = error
 
-        output = kp * error + ki * integral + kd * deriv + random.uniform(-0.6, 0.6)
+        output = kp * error + ki * integral + kd * deriv + random.uniform(-1.0, 1.0)
         output = np.clip(output, -1.0, 1.0)
 
         data.ctrl[0] = - output * output_max
