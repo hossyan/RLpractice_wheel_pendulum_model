@@ -2,31 +2,59 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import mujoco
-
+import os
 
 class robot_env(gym.Env):
-    def __init__(self, model_path):
-        super(robot_env, self).__init__()
+    def __init__(self, xml_name="pendulum.xml"):
+        super().__init__()
         
-        # 1. MuJoCoモデルの読み込み準備
-        # ここでXMLファイルを読み込む設定をします
-        
-        # 2. アクション空間 (Action Space) の定義
-        # ロボットが「何ができるか」を定義します
-        # タイヤ2つへのトルク指令（例：-1.0 から 1.0 の範囲）
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
-        
-        # 3. 観測空間 (Observation Space) の定義
-        # ロボットが「何を見ることができるか」を定義します
-        # 例：傾き、角速度、タイヤの回転角、回転速度など
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
+        # --- 1. MuJoCoモデルの読み込み ---
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        xml_path = os.path.join(script_dir, xml_name)
+
+        # モデルとデータの読み込み
+        self.model = mujoco.MjModel.from_xml_path(xml_path)
+        self.data = mujoco.MjData(self.model)
+        self.body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "base")
+        self.l_wheel_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "hinge_L")
+        self.r_wheel_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "hinge_R")  
+
+        # --- 2. アクション空間 (Action Space) の定義 ---
+        # [右のトルク, 左のトルク] 
+        low_act = np.array([-0.021, -0.021], dtype=np.float32)
+        high_act = np.array([0.021, 0.021], dtype=np.float32)
+        self.action_space = spaces.Box(low=low_act, high=high_act, dtype=np.float32)
+
+        # --- 3. 観測空間 (Observation Space) の定義 ---
+        # [本体ピッチ角, 本体角速度, 右車輪角速度, 左車輪角速度] の4つとします
+        self.observation_space = spaces.Box(
+            low=-np.inf, 
+            high=np.inf, 
+            shape=(4,), 
+            dtype=np.float32
+        )
+
+        # --- 4. 制御周期の設定 ---
+        self.dt = self.model.opt.timestep
+
+    def _get_obs(self):
+        # --- 1. 車体の角度（ロール角）の計算 ---
+        quat = self.data.xquat[self.body_id]
+        w, x, y, z = quat
+        roll_rad = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x**2 + y**2))
+
+        # --- 2. その他のデータの取得 ---
+        body_ang_vel = self.data.qvel[3] 
+        l_wheel_vel = self.data.qvel[self.l_wheel_id]
+        r_wheel_vel = self.data.qvel[self.r_wheel_id]
+
+        return np.array([roll_rad, body_ang_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
-        # 練習を最初からやり直す（ロボットを初期位置に戻す）処理
         super().reset(seed=seed)
-        # 状態を初期化し、最初の「観測値」を返す必要があります
-        observation = np.zeros(6, dtype=np.float32)
-        return observation, {}
+        mujoco.mj_resetData(self.model, self.data)
+        obs = self._get_obs()
+        return obs, {}
 
     def step(self, action):
         # 1コマ（例えば0.01秒）時間を進める処理
