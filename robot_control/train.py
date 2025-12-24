@@ -16,7 +16,7 @@ model = PPO(
 
 # 3. 学習開始
 print("学習を開始します。")
-model.learn(total_timesteps=100_000) # 100_000回試す(10ms * 100,000 = 1000s)
+model.learn(total_timesteps=1000000) # 100_000回試す(10ms * 100,000 = 1000s)
 
 # 4. 学習済みモデル（重み）の保存
 model.save("ppo_inverted_pendulum")

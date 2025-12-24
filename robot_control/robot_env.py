@@ -26,11 +26,10 @@ class RobotEnv(gym.Env):
         self.action_space = spaces.Box(low=low_act, high=high_act, dtype=np.float32)
 
         # --- 3. 観測空間 (Observation Space) の定義 ---
-        # [本体ピッチ角, 本体角速度, 右車輪角速度, 左車輪角速度] の4つとします
         self.observation_space = spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(4,), 
+            shape=(5,), 
             dtype=np.float32
         )
 
@@ -44,11 +43,12 @@ class RobotEnv(gym.Env):
         roll_rad = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x**2 + y**2))
 
         # --- 2. その他のデータの取得 ---
-        body_ang_vel = self.data.qvel[3] 
-        l_wheel_vel = self.data.qvel[self.l_wheel_id]
-        r_wheel_vel = self.data.qvel[self.r_wheel_id]
+        body_roll_vel = self.data.qvel[3] 
+        body_yaw_vel = self.data.qvel[5] 
+        l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
+        r_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
 
-        return np.array([roll_rad, body_ang_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
+        return np.array([roll_rad, body_roll_vel, body_yaw_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -71,7 +71,12 @@ class RobotEnv(gym.Env):
         terminated = bool(abs(roll) > 0.78)
 
         # 報酬
-        reward = 1.0 if not terminated else 0.0
+        reward = float(
+            -5.0 * obs[0]**2    # 傾きペナルティ
+            -0.1 * obs[1]**2    # 揺れペナルティ
+            -1.0 * obs[2]**2    # その場回転ペナルティ
+            +5.0 * (abs(obs[0]) < 0.035) # 倒立報酬(2度以内)
+        )
 
         truncated = False     # 時間切れならTrue
         info = {}             # おまけ情報
