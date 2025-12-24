@@ -4,7 +4,7 @@ import numpy as np
 import mujoco
 import os
 
-class robot_env(gym.Env):
+class RobotEnv(gym.Env):
     def __init__(self, xml_name="pendulum.xml"):
         super().__init__()
         
@@ -72,7 +72,7 @@ class robot_env(gym.Env):
 
         # 報酬
         reward = 1.0 if not terminated else 0.0
-        
+
         truncated = False     # 時間切れならTrue
         info = {}             # おまけ情報
 
