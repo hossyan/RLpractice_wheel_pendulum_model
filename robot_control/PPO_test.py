@@ -17,7 +17,7 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         action, _ = model.predict(obs, deterministic=True)
         
         if np.random.rand() < 0.02:
-            push_force = np.random.uniform(-10.0, 10.0)
+            push_force = np.random.uniform(-2.0, 2.0)
             env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = push_force
         else:
             env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = 0.0
