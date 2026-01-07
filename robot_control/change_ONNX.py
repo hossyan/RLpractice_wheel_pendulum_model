@@ -7,11 +7,12 @@ model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
 
 
 # 1. 今まで学習したモデルを読み込む
-model = PPO.load(model_path)
+model = PPO.load(model_path, device="cpu")
 
 # 2. ダミーの入力データを作る（観測値が5つなので [1, 5] の形）
 # AIに「とりあえず5つの数字が入ってくるよ」と教えるためのものです
 dummy_input = torch.randn(1, 5)
+
 
 # 3. ONNX形式で書き出す
 torch.onnx.export(
