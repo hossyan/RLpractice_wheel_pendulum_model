@@ -21,8 +21,8 @@ class RobotEnv(gym.Env):
 
         # --- 2. アクション空間 (Action Space) の定義 ---
         # [右のトルク, 左のトルク] 
-        low_act = np.array([-0.021, -0.021], dtype=np.float32)
-        high_act = np.array([0.021, 0.021], dtype=np.float32)
+        low_act = np.array([-1.0, -1.0], dtype=np.float32)
+        high_act = np.array([1.0, 1.0], dtype=np.float32)
         self.action_space = spaces.Box(low=low_act, high=high_act, dtype=np.float32)
 
         # --- 3. 観測空間 (Observation Space) の定義 ---
@@ -57,8 +57,8 @@ class RobotEnv(gym.Env):
         return obs, {}
 
     def step(self, action):
-        self.data.ctrl[0] = action[0] # wheel_hinge_left
-        self.data.ctrl[1] = action[1] # wheel_hinge_right
+        self.data.ctrl[0] = action[0] * 0.021 # wheel_hinge_left
+        self.data.ctrl[1] = action[1] * 0.021 # wheel_hinge_right
 
         # 10ms ごとに学習
         for _ in range(10):
@@ -72,10 +72,13 @@ class RobotEnv(gym.Env):
 
         # 報酬
         reward = float(
-            -5.0 * obs[0]**2    # 傾きペナルティ
+            -3.0 * obs[0]**2    # 傾きペナルティ
             -0.1 * obs[1]**2    # 揺れペナルティ
-            -1.0 * obs[2]**2    # その場回転ペナルティ
-            +5.0 * (abs(obs[0]) < 0.035) # 倒立報酬(2度以内)
+            -2.0 * obs[2]**2    # その場回転ペナルティ
+            # -0.05 * obs[3]**2    # タイヤのスピードペナルティ
+            # -0.05 * obs[4]**2    # タイヤのスピードペナルティ
+            # -1.0 * (abs(action[0]) + abs(action[1]))  # 電流値ペナルティ
+            +6.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
         )
 
         truncated = False     # 時間切れならTrue

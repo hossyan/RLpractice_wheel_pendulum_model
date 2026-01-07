@@ -9,12 +9,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
 
 env = RobotEnv(xml_name="pendulum.xml")
-model = PPO.load(model_path)
+model = PPO.load(model_path, device="cuda")
 
 with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
     obs, info = env.reset()    
     while viewer.is_running():
         action, _ = model.predict(obs, deterministic=True)
+        print(f"Action (L/R): {action}")
         
         if np.random.rand() < 0.02:
             push_force = np.random.uniform(-2.0, 2.0)

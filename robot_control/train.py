@@ -11,12 +11,12 @@ model = PPO(
     env, 
     verbose=1,
     learning_rate=0.0003, # 学習率
-    device="auto"         # GPUがあればGPU、なければCPUを自動選択
+    device="cuda"         # GPUがあればGPU、なければCPUを自動選択
 )
 
 # 3. 学習開始
 print("学習を開始します。")
-model.learn(total_timesteps=1000000) # 100_000回試す(10ms * 100,000 = 1000s)
+model.learn(total_timesteps=700000) 
 
 # 4. 学習済みモデル（重み）の保存
 model.save("ppo_inverted_pendulum")
