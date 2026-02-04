@@ -46,7 +46,7 @@ class RobotEnv(gym.Env):
         body_roll_vel = self.data.qvel[3] 
         body_yaw_vel = self.data.qvel[5] 
         l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
-        r_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
+        r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
 
         return np.array([roll_rad, body_roll_vel, body_yaw_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
 
@@ -58,7 +58,7 @@ class RobotEnv(gym.Env):
 
     def step(self, action):
         self.data.ctrl[0] = action[0] * 0.021 # wheel_hinge_left
-        self.data.ctrl[1] = action[1] * 0.021 # wheel_hinge_right
+        self.data.ctrl[1] = -action[1] * 0.021 # wheel_hinge_right
 
         # 10ms ごとに学習
         for _ in range(10):
