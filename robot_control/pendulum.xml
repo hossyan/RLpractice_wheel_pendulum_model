@@ -12,20 +12,22 @@
         <!-- 本体(モータ付き) -->
         <body name="base" pos="0 0 0.012">
             <joint type="free"/>
-            <inertial mass="0.541465" pos="0 0 0.061" diaginertia="5.094e-4 3.613e-4 6.404e-4"/>
-            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0" contype="1" conaffinity="1" euler="90 0 0"/> 
+            <inertial mass="0.225224" pos="-1.104e-5 1.555e-5 0.037196" diaginertia="2.050e-4 3.366e-4 2.105e-4"/>
+            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0" contype="1" conaffinity="1"/> 
         
         <!-- タイヤ左 -->
             <body name="wheel_L" pos="-0.047 0 0.0196">
-            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.00005"/>
-            <inertial mass="0.021477" diaginertia="1.2039e-5 6.234e-6 6.234e-6" pos="0 0 0"/>
+            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.001"/>
+            <inertial mass="0.021477" pos="0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
             <geom type="mesh" mesh="wheel" solref="0.02 1.0" solimp="0.9 0.95 0.001" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1"/>
             </body>
+
+
         <!-- タイヤ右 -->
             <body name="wheel_R" pos="0.047 0 0.0196" euler="0 0 180">
-            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.00005"/>
-            <inertial mass="0.021477" diaginertia="1.2039e-5 6.234e-6 6.234e-6" pos="0 0 0"/>
-            <geom type="mesh" mesh="wheel" solref="0.02 1.0" solimp="0.9 0.95 0.001" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1"/>
+            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.001"/>
+            <inertial mass="0.021477" pos="-0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
+            <geom type="mesh" mesh="wheel" solref="0.02 1.0" solimp="0.9 0.95 0.001" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1" />
             </body>
         </body>
         
@@ -43,7 +45,7 @@
     </contact>
     
     <actuator>
-        <motor name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true"/>
-        <motor name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true"/>
+        <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.005"/>
+        <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.005"/>
     </actuator> 
 </mujoco>

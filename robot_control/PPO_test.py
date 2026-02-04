@@ -17,11 +17,11 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         action, _ = model.predict(obs, deterministic=True)
         print(f"Action (L/R): {action}")
         
-        if np.random.rand() < 0.02:
-            push_force = np.random.uniform(-2.0, 2.0)
-            env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = push_force
-        else:
-            env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = 0.0
+        # if np.random.rand() < 0.02:
+        #     push_force = np.random.uniform(-2.0, 2.0)
+        #     env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = push_force
+        # else:
+        #     env.unwrapped.data.xfrc_applied[env.unwrapped.body_id, 1] = 0.0
 
         obs, reward, terminated, truncated, info = env.step(action)
         
