@@ -29,7 +29,7 @@ if __name__ == "__main__":
     )
 
     print("GPUで学習を開始します。")
-    model.learn(total_timesteps=800000) 
+    model.learn(total_timesteps=1000000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum")
