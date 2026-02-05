@@ -36,6 +36,9 @@ class RobotEnv(gym.Env):
         # --- 4. 制御周期の設定 ---
         self.dt = self.model.opt.timestep
 
+        # --- 5. 報酬設定用変数の初期化 ---
+        self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
+
     def _get_obs(self):
         # --- 1. 車体の角度（ロール角）の計算 ---
         quat = self.data.xquat[self.body_id]
@@ -53,6 +56,7 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
+        self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
         obs = self._get_obs()
         return obs, {}
 
@@ -71,14 +75,17 @@ class RobotEnv(gym.Env):
         terminated = bool(abs(roll) > 0.78)
 
         # 報酬
+        action_penalty = np.sum(np.square(action - self.prev_action))
         reward = float(
+            -0.1 * action_penalty
             -3.0 * obs[0]**2    # 傾きペナルティ
             -1.0 * obs[1]**2    # 揺れペナルティ
             -2.0 * obs[2]**2    # その場回転ペナルティ
             -0.05 * obs[3]**2    # タイヤのスピードペナルティ
             -0.05 * obs[4]**2    # タイヤのスピードペナルティ
-            +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
+            +6.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
         )
+        self.prev_action = action.copy()
 
         truncated = False     # 時間切れならTrue
         info = {}             # おまけ情報
