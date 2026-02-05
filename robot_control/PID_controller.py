@@ -51,8 +51,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         data.ctrl[0] = - output * output_max
         data.ctrl[1] = output * output_max
 
-        print(output)
-
         mujoco.mj_step(model, data)
 
         # ビューアを更新

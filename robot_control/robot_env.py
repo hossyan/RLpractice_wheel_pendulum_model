@@ -33,21 +33,28 @@ class RobotEnv(gym.Env):
             dtype=np.float32
         )
 
-        # --- 4. 制御周期の設定 ---
+        # --- 4. 制御系の設定 ---
         self.dt = self.model.opt.timestep
+        self.filtered_roll = 0.0
+        self.alpha = 0.98
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
 
     def _get_obs(self):
-        # --- 1. 車体の角度（ロール角）の計算 ---
-        quat = self.data.xquat[self.body_id]
-        w, x, y, z = quat
-        roll_rad = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x**2 + y**2))
+        # --- 1. センサデータの取得 ---
+        accel = self.data.sensor("body_accel").data
+        gyro = self.data.sensor("body_gyro").data
 
-        # --- 2. その他のデータの取得 ---
-        body_roll_vel = self.data.qvel[3] 
-        body_yaw_vel = self.data.qvel[5] 
+        accel_roll = np.arctan2(accel[1], accel[2])
+        gyro_roll = gyro[0]
+        dt_control = self.dt * 10
+        self.filtered_roll = self.alpha * (self.filtered_roll + gyro_roll * dt_control) + (1 - self.alpha) * accel_roll
+
+        # --- 2. 各種パラメータ ---
+        roll_rad = self.filtered_roll
+        body_roll_vel = gyro[0] 
+        body_yaw_vel = gyro[2] 
         l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
         r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
 
@@ -56,6 +63,7 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
+        self.filtered_roll = 0.0
         self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
         obs = self._get_obs()
         return obs, {}
@@ -77,12 +85,13 @@ class RobotEnv(gym.Env):
         # 報酬
         action_penalty = np.sum(np.square(action - self.prev_action))
         reward = float(
-            -0.1 * action_penalty
-            -3.0 * obs[0]**2    # 傾きペナルティ
-            -1.0 * obs[1]**2    # 揺れペナルティ
-            -2.0 * obs[2]**2    # その場回転ペナルティ
-            -0.05 * obs[3]**2    # タイヤのスピードペナルティ
-            -0.05 * obs[4]**2    # タイヤのスピードペナルティ
+            -0.5 * action_penalty
+            -2.0 * obs[0]**2    # 傾きペナルティ
+            -4.0 * obs[1]**2    # 揺れペナルティ
+            # -2.0 * obs[2]**2    # その場回転ペナルティ
+            -3.0 * abs(action[0] - action[1])
+            -0.1 * obs[3]**2    # タイヤのスピードペナルティ
+            -0.1 * obs[4]**2    # タイヤのスピードペナルティ
             +6.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
         )
         self.prev_action = action.copy()
