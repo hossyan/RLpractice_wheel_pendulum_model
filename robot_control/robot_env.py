@@ -77,6 +77,8 @@ class RobotEnv(gym.Env):
             mujoco.mj_step(self.model, self.data)
 
         obs = self._get_obs()
+        pos = self.data.xpos[self.body_id]
+        x_pos, y_pos, z_pos = pos
 
         # 終了判定 45度(0.78rad)より傾くと終了
         roll = obs[0] 
@@ -85,10 +87,11 @@ class RobotEnv(gym.Env):
         # 報酬
         action_penalty = np.sum(np.square(action - self.prev_action))
         reward = float(
-            -0.1 * action_penalty
-            -0.1 * np.sum(np.square(action))
+            -0.1 * action_penalty # actionの連続値可
+            -0.1 * np.sum(np.square(action)) # actionの大きさペナルティ
+            -0.1 * y_pos**2
             -2.0 * obs[0]**2    # 傾きペナルティ
-            -3.0 * obs[1]**2    # 揺れペナルティ
+            -10.0 * obs[1]**2    # 揺れペナルティ
             # -2.0 * obs[2]**2    # その場回転ペナルティ
             -3.0 * abs(action[0] - action[1])
             # -0.1 * obs[3]**2    # タイヤのスピードペナルティ
