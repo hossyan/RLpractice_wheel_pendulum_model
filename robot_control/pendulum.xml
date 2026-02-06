@@ -51,6 +51,6 @@
     <!-- センサー -->
     <sensor>
         <accelerometer name="body_accel" site="imu_site" noise="0.01"/>
-        <gyro name="body_gyro" site="imu_site" noise="0.001"/>
+        <gyro name="body_gyro" site="imu_site" noise="0.01"/>
     </sensor>
 </mujoco>

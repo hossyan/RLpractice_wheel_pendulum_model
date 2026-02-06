@@ -29,7 +29,7 @@ class RobotEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(5,), 
+            shape=(3,), 
             dtype=np.float32
         )
 
@@ -55,10 +55,10 @@ class RobotEnv(gym.Env):
         roll_rad = self.filtered_roll
         body_roll_vel = gyro[0] 
         body_yaw_vel = gyro[2] 
-        l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
-        r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
+        # l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
+        # r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
 
-        return np.array([roll_rad, body_roll_vel, body_yaw_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
+        return np.array([roll_rad, body_roll_vel, body_yaw_vel], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -91,8 +91,8 @@ class RobotEnv(gym.Env):
             -3.0 * obs[1]**2    # 揺れペナルティ
             # -2.0 * obs[2]**2    # その場回転ペナルティ
             -3.0 * abs(action[0] - action[1])
-            -0.1 * obs[3]**2    # タイヤのスピードペナルティ
-            -0.1 * obs[4]**2    # タイヤのスピードペナルティ
+            # -0.1 * obs[3]**2    # タイヤのスピードペナルティ
+            # -0.1 * obs[4]**2    # タイヤのスピードペナルティ
             +6.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
         )
         self.prev_action = action.copy()

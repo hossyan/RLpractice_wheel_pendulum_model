@@ -11,7 +11,7 @@ model = PPO.load(model_path, device="cpu")
 
 # 2. ダミーの入力データを作る（観測値が5つなので [1, 5] の形）
 # AIに「とりあえず5つの数字が入ってくるよ」と教えるためのものです
-dummy_input = torch.randn(1, 5)
+dummy_input = torch.randn(1, 3)
 
 
 # 3. ONNX形式で書き出す
