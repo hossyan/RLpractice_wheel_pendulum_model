@@ -17,9 +17,9 @@ body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base")
 # pidパラメータ
 output_max = 0.021
 target_rad = 0.0
-kp = 9.8
+kp = 30
 ki = 0.0
-kd = 1.0
+kd = 1.5
 pre_time = 0.0
 pre_error = 0.0
 integral = 0.0
@@ -45,11 +45,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         deriv = (error - pre_error) / dt
         pre_error = error
 
-        output = kp * error + ki * integral + kd * deriv + random.uniform(-1.0, 1.0)
+        # output = kp * error + ki * integral + kd * deriv + random.uniform(-1.0, 1.0)
+        output = kp * error + ki * integral + kd * deriv
         output = np.clip(output, -1.0, 1.0)
 
         data.ctrl[0] = - output * output_max
         data.ctrl[1] = output * output_max
+
+        print(output)
 
         mujoco.mj_step(model, data)
 

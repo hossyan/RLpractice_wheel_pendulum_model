@@ -38,9 +38,9 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         
         viewer.sync()
 
-        sendTelemetry("obs_0", o0)
-        sendTelemetry("obs_1", o1)
-        sendTelemetry("obs_2", o2)
+        sendTelemetry("roll", o0)
+        sendTelemetry("roll_vel", o1)
+        sendTelemetry("yaw_vel", o2)
         sendTelemetry("action_0", a0)
         # sendTelemetry("action_1", a1)
         

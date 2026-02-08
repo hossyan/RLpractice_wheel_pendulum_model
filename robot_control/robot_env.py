@@ -29,14 +29,14 @@ class RobotEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(3,), 
+            shape=(5,), 
             dtype=np.float32
         )
 
         # --- 4. 制御系の設定 ---
         self.dt = self.model.opt.timestep
         self.filtered_roll = 0.0
-        self.alpha = 0.98
+        self.alpha = 0.6
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
@@ -51,14 +51,15 @@ class RobotEnv(gym.Env):
         dt_control = self.dt * 10
         self.filtered_roll = self.alpha * (self.filtered_roll + gyro_roll * dt_control) + (1 - self.alpha) * accel_roll
 
+        gyro_roll_noise_std = 0.1
         # --- 2. 各種パラメータ ---
         roll_rad = self.filtered_roll
-        body_roll_vel = gyro[0] 
+        body_roll_vel = gyro[0] + np.random.normal(0, gyro_roll_noise_std) 
         body_yaw_vel = gyro[2] 
-        # l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
-        # r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
+        l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
+        r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
 
-        return np.array([roll_rad, body_roll_vel, body_yaw_vel], dtype=np.float32)
+        return np.array([roll_rad, body_roll_vel, body_yaw_vel, l_wheel_vel, r_wheel_vel], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -77,8 +78,8 @@ class RobotEnv(gym.Env):
             mujoco.mj_step(self.model, self.data)
 
         obs = self._get_obs()
-        pos = self.data.xpos[self.body_id]
-        x_pos, y_pos, z_pos = pos
+        l_vel = obs[3]
+        r_vel = obs[4]
 
         # 終了判定 45度(0.78rad)より傾くと終了
         roll = obs[0] 
@@ -87,16 +88,16 @@ class RobotEnv(gym.Env):
         # 報酬
         action_penalty = np.sum(np.square(action - self.prev_action))
         reward = float(
-            # -0.1 * action_penalty # actionの連続値可
-            # -0.1 * np.sum(np.square(action)) # actionの大きさペナルティ
-            -3.0 * y_pos**2
+            -0.1 * action_penalty # actionの連続値可
+            -0.1 * np.sum(np.square(action)) # actionの大きさペナルティ
+            # -1.0 * (l_vel**2 + r_vel**2)
             -10.0 * obs[0]**2    # 傾きペナルティ
-            # -2.0 * obs[1]**2    # 揺れペナルティ
+            -5.0 * obs[1]**2    # 揺れペナルティ
             # -2.0 * obs[2]**2    # その場回転ペナルティ
             # -3.0 * abs(action[0] - action[1])
             # -0.1 * obs[3]**2    # タイヤのスピードペナルティ
             # -0.1 * obs[4]**2    # タイヤのスピードペナルティ
-            +6.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
+            +10.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
             +1 # 生存報酬
         )
         self.prev_action = action.copy()

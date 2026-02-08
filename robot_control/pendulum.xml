@@ -18,7 +18,7 @@
         
         <!-- タイヤ左 -->
             <body name="wheel_L" pos="-0.047 0 0.0196">
-            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.001"/>
+            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.01"/>
             <inertial mass="0.021477" pos="0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
             <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1"/>
             </body>
@@ -26,7 +26,7 @@
 
         <!-- タイヤ右 -->
             <body name="wheel_R" pos="0.047 0 0.0196" euler="0 0 180">
-            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.001"/>
+            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.01"/>
             <inertial mass="0.021477" pos="-0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
             <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1" />
             </body>
@@ -44,13 +44,13 @@
     
     <!-- モータ -->
     <actuator>
-        <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.02"/>
-        <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.02"/>
+        <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.005"/>
+        <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.021 0.021" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.005"/>
     </actuator> 
 
     <!-- センサー -->
     <sensor>
         <accelerometer name="body_accel" site="imu_site" noise="0.01"/>
-        <gyro name="body_gyro" site="imu_site" noise="0.02"/>
+        <gyro name="body_gyro" site="imu_site" noise="0.01"/>
     </sensor>
 </mujoco>

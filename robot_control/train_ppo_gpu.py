@@ -3,8 +3,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 from robot_env import RobotEnv  
 from gymnasium.wrappers import TimeLimit
 import os
-
-from gymnasium.wrappers import TimeLimit # 追加
+from gymnasium.wrappers import TimeLimit 
 
 def make_env(rank):
     def _init():
@@ -14,24 +13,28 @@ def make_env(rank):
         return env
     return _init
 
+
 if __name__ == "__main__":
-    # 8つのプロセスを立ち上げて並列化（CPUのコア数に合わせて4〜12くらいが目安）
     env = SubprocVecEnv([make_env(i) for i in range(8)]) 
 
-    model = PPO(
-        "MlpPolicy", 
-        env, 
-        verbose=1,
-        learning_rate=0.0003,
-        n_steps=256, 
-        device="cuda",
-        tensorboard_log="./ppo_robot_logs/"
-    )
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+    model = PPO.load(load_path, env=env, device="cuda")
+
+    # model = PPO(
+    #     "MlpPolicy", 
+    #     env, 
+    #     verbose=1,
+    #     learning_rate=0.0003,
+    #     n_steps=256, 
+    #     device="cuda",
+    #     tensorboard_log="./ppo_robot_logs/"
+    # )
 
     print("GPUで学習を開始します。")
-    model.learn(total_timesteps=700000) 
+    model.learn(total_timesteps=1000000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum")
+    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV2")
     model.save(save_path)
     print("学習が完了しました！")
