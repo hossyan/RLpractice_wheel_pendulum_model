@@ -9,6 +9,7 @@ class PID_controller:
     def calc(self, target, current, dt):
         error = target - current
         self.integral += error * dt
+        self.integral = np.clip(self.integral, -1.0, 1.0)
         deriv = (error - self.pre_error) / dt
 
         u = (self.kp * error) + (self.ki * self.integral) + (self.kd * deriv)

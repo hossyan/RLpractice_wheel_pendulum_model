@@ -34,15 +34,12 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
 
         obs, reward, terminated, truncated, info = env.step(action)
         o0, o1, o2 = obs[0], obs[1], obs[2]
-        a0 = action[0]
-        
+        a0 = action
+
         viewer.sync()
 
         sendTelemetry("roll", o0)
-        sendTelemetry("roll_vel", o1)
-        sendTelemetry("yaw_vel", o2)
-        sendTelemetry("action_0", a0)
-        # sendTelemetry("action_1", a1)
+        sendTelemetry("action", a0)
         
         time.sleep(0.01)
         

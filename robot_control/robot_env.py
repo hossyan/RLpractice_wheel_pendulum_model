@@ -35,7 +35,7 @@ class RobotEnv(gym.Env):
         )
 
         # --- 4. 制御系の設定 ---
-        self.pid_forward = PID_controller(kp=0.0, ki=0.0, kd=0.0)
+        self.pid_forward = PID_controller(kp=15.0, ki=0.001, kd=0.05)
 
         self.dt = self.model.opt.timestep * 10 # 10ステップ分
         self.filtered_roll = 0.0
@@ -62,10 +62,10 @@ class RobotEnv(gym.Env):
         gyro = self.data.sensor("body_gyro").data
 
         # 観測空間
-        roll_rad = self._get_robot_angle
+        roll_rad = self._get_robot_angle()
         l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
         r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
-        forward_input = 0
+        forward_input = 0.0
 
         return np.array([roll_rad, l_wheel_vel, r_wheel_vel, forward_input], dtype=np.float32)
 
@@ -82,28 +82,21 @@ class RobotEnv(gym.Env):
 
         # 30ms ごとに学習
         for _ in range(3):
-            roll = self._get_robot_angle
+            roll = self._get_robot_angle()
             u = self.pid_forward.calc(target=target_v, current=roll, dt=self.dt)
-            self.data.ctrl[0] = u * 0.021
-            self.data.ctrl[1] = -u * 0.021
+            self.data.ctrl[0] = -u * 0.021
+            self.data.ctrl[1] = u * 0.021
             for _ in range(10):
                 mujoco.mj_step(self.model, self.data)
 
         obs = self._get_obs()
+        error = obs[3] - obs[0]
 
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
         reward = float(
-            -0.1 * action_penalty # actionの連続値可
-            -0.1 * np.sum(np.square(action)) # actionの大きさペナルティ
-            # -1.0 * (l_vel**2 + r_vel**2)
-            -10.0 * obs[0]**2    # 傾きペナルティ
-            -5.0 * obs[1]**2    # 揺れペナルティ
-            # -2.0 * obs[2]**2    # その場回転ペナルティ
-            # -3.0 * abs(action[0] - action[1])
-            # -0.1 * obs[3]**2    # タイヤのスピードペナルティ
-            # -0.1 * obs[4]**2    # タイヤのスピードペナルティ
-            +10.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
+            -2.0 * error**2
+            +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
             +1 # 生存報酬
         )
         self.pre_action = action.copy()
