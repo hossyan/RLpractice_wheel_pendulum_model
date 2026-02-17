@@ -3,13 +3,13 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 from robot_env import RobotEnv  
 from gymnasium.wrappers import TimeLimit
 import os
-from gymnasium.wrappers import TimeLimit 
+from stable_baselines3.common.monitor import Monitor
 
 def make_env(rank):
     def _init():
         env = RobotEnv(xml_name="pendulum.xml")
-        # 1000ステップ（10秒分など）で強制的に区切る設定を追加
-        env = TimeLimit(env, max_episode_steps=1000) 
+        env = Monitor(env)
+        env = TimeLimit(env, max_episode_steps=2000) 
         return env
     return _init
 
@@ -28,11 +28,11 @@ if __name__ == "__main__":
         learning_rate=0.0003,
         n_steps=256, 
         device="cuda",
-        tensorboard_log="./ppo_robot_logs/"
+        tensorboard_log="./logs/"
     )
 
     print("GPUで学習を開始します。")
-    model.learn(total_timesteps=1000000) 
+    model.learn(total_timesteps=500000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum")

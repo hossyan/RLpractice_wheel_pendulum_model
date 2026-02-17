@@ -15,7 +15,7 @@ def sendTelemetry(name, value):
     sock.sendto(msg.encode(), teleplotAddr)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV2.zip")
 
 env = RobotEnv(xml_name="pendulum.xml")
 model = PPO.load(model_path, device="cuda")
@@ -38,7 +38,11 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
 
         viewer.sync()
 
-        sendTelemetry("roll", o0)
+        sendTelemetry("roll", obs[0])
+        sendTelemetry("gx", obs[1])
+        sendTelemetry("l_vel", obs[2])
+        sendTelemetry("r_vel", obs[3])
+        sendTelemetry("controller", obs[4])
         sendTelemetry("action", a0)
         
         time.sleep(0.01)

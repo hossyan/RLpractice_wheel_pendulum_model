@@ -30,7 +30,7 @@ class RobotEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(4,), 
+            shape=(5,), 
             dtype=np.float32
         )
 
@@ -63,41 +63,52 @@ class RobotEnv(gym.Env):
 
         # 観測空間
         roll_rad = self._get_robot_angle()
+        gyro_rad = gyro[0]
         l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
         r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
         forward_input = 0.0
 
-        return np.array([roll_rad, l_wheel_vel, r_wheel_vel, forward_input], dtype=np.float32)
+        return np.array([roll_rad, gyro_rad, l_wheel_vel, r_wheel_vel, forward_input], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
+        random_roll = self.np_random.uniform(low=-0.05, high=0.05)
+        quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
+        self.data.qpos[3:7] = quat
+
+        self.data.qpos[0:3] = [0, 0, 0.012]
+        self.data.qpos[7:] = 0.0
+
+        mujoco.mj_forward(self.model,self.data)
+
+        # 変数初期化
         self.filtered_roll = 0.0
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        target_v = action
+        self.data.ctrl[0] = -action * 0.0276
+        self.data.ctrl[1] = action * 0.0276
 
-        # 30ms ごとに学習
-        for _ in range(3):
-            roll = self._get_robot_angle()
-            u = self.pid_forward.calc(target=target_v, current=roll, dt=self.dt)
-            self.data.ctrl[0] = -u * 0.021
-            self.data.ctrl[1] = u * 0.021
-            for _ in range(10):
-                mujoco.mj_step(self.model, self.data)
+        # 10ms ごとに学習
+        for _ in range(10):
+            mujoco.mj_step(self.model, self.data)           
 
         obs = self._get_obs()
-        error = obs[3] - obs[0]
+        error = obs[4] - obs[0]
 
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
         reward = float(
-            -2.0 * error**2
-            +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
-            +1 # 生存報酬
+            -0.1 * action**2 # アクションの大きさ
+            -0.1 * action_penalty # actionの滑らかさ
+            -2.0 * error**2 # 角度ペナルティ
+            -0.5 * obs[1]**2 # 角速度ペナルティ
+            # +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
+            +10 # 生存報酬
         )
         self.pre_action = action.copy()
 

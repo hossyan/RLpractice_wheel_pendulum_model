@@ -25,10 +25,10 @@ data = mujoco.MjData(model)
 body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base")
 
 # pidパラメータ
-output_max = 0.021
+speed_max = 0.0276
 target_rad = 0.0
-kp = 15.0
-ki = 0.001
+kp = 1
+ki = 0.0
 kd = 0.05
 pre_time = 0.0
 pre_error = 0.0
@@ -72,22 +72,23 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # roll = _get_robot_angle(dt)
 
-        # pre_time = now
-        # error = target_rad - roll
-        # integral += error * dt
-        # deriv = (error - pre_error) / dt
-        # pre_error = error
+        pre_time = now
+        error = target_rad - roll
+        integral += error * dt
+        deriv = (error - pre_error) / dt
+        pre_error = error
 
         # # output = kp * error + ki * integral + kd * deriv + random.uniform(-1.0, 1.0)
-        # output = kp * error + ki * integral + kd * deriv
-        # output = np.clip(output, -1.0, 1.0)
+        output = kp * error + ki * integral + kd * deriv
+        output = np.clip(output, -1.0, 1.0)
 
-        output = pid_forward.calc(0, roll, dt)
+        # output = pid_forward.calc(0, roll, dt)
 
-        data.ctrl[0] = - output * output_max 
-        data.ctrl[1] = output * output_max
+        data.ctrl[0] = -output * speed_max
+        data.ctrl[1] = output * speed_max
 
         sendTelemetry("roll", roll)
+        sendTelemetry("deriv", deriv)
         sendTelemetry("ouput", output)
         print(abs(output))
 
