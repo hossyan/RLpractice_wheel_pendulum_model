@@ -3,7 +3,6 @@ from gymnasium import spaces
 import numpy as np
 import mujoco
 import os
-from PID_for_PPO import PID_controller
 
 class RobotEnv(gym.Env):
     def __init__(self, xml_name="pendulum.xml"):
@@ -35,8 +34,6 @@ class RobotEnv(gym.Env):
         )
 
         # --- 4. 制御系の設定 ---
-        self.pid_forward = PID_controller(kp=15.0, ki=0.001, kd=0.05)
-
         self.dt = self.model.opt.timestep * 10 # 10ステップ分
         self.filtered_roll = 0.0
         self.alpha = 0.6
@@ -73,7 +70,7 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
-        random_roll = self.np_random.uniform(low=-0.05, high=0.05)
+        random_roll = self.np_random.uniform(low=-0.0, high=0.0)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
 
@@ -90,8 +87,8 @@ class RobotEnv(gym.Env):
         return obs, {}
 
     def step(self, action):
-        self.data.ctrl[0] = -action * 0.0276
-        self.data.ctrl[1] = action * 0.0276
+        self.data.ctrl[0] = action * 0.0276
+        self.data.ctrl[1] = -action * 0.0276
 
         # 10ms ごとに学習
         for _ in range(10):
@@ -105,8 +102,10 @@ class RobotEnv(gym.Env):
         reward = float(
             -0.1 * action**2 # アクションの大きさ
             -0.1 * action_penalty # actionの滑らかさ
-            -2.0 * error**2 # 角度ペナルティ
+            -2.0 * obs[0]**2 # 角度ペナルティ
             -0.5 * obs[1]**2 # 角速度ペナルティ
+            -0.01 * obs[2]**2
+            -0.01 * obs[3]**2
             # +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
             +10 # 生存報酬
         )
