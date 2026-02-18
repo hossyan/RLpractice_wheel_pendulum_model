@@ -25,11 +25,11 @@ data = mujoco.MjData(model)
 body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base")
 
 # pidパラメータ
-speed_max = 0.0276
+current_max = 0.0276
 target_rad = 0.0
-kp = 1
-ki = 0.0
-kd = 0.05
+kp = 0.097
+ki = 0.0000003
+kd = 0.00201
 pre_time = 0.0
 pre_error = 0.0
 integral = 0.0
@@ -43,8 +43,8 @@ def get_absolute_roll():
     w, x, y, z = quat
     roll_rad = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x**2 + y**2))
     roll_rad += np.random.normal(0, 0.003)
-    # roll_deg = roll_rad * 180 / np.pi
-    return roll_rad
+    roll_deg = roll_rad * 180 / np.pi
+    return roll_deg
 
 def _get_robot_angle(dt):
     global filtered_roll
@@ -84,8 +84,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # output = pid_forward.calc(0, roll, dt)
 
-        data.ctrl[0] = -output * speed_max
-        data.ctrl[1] = output * speed_max
+        data.ctrl[0] = -output * current_max
+        data.ctrl[1] = output * current_max
 
         sendTelemetry("roll", roll)
         sendTelemetry("deriv", deriv)

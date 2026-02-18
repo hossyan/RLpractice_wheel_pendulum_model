@@ -1,2 +1,0 @@
-
-        sendTelemetry("roll", roll)

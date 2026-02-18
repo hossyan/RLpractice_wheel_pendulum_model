@@ -73,7 +73,7 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
-        random_roll = self.np_random.uniform(low=-0.05, high=0.05)
+        random_roll = self.np_random.uniform(low=-0.0, high=0.0)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
 
@@ -105,7 +105,7 @@ class RobotEnv(gym.Env):
         reward = float(
             -0.1 * action**2 # アクションの大きさ
             -0.1 * action_penalty # actionの滑らかさ
-            -2.0 * error**2 # 角度ペナルティ
+            -4.0 * error**2 # 角度ペナルティ
             -0.5 * obs[1]**2 # 角速度ペナルティ
             # +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
             +10 # 生存報酬

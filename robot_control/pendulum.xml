@@ -20,7 +20,12 @@
             <body name="wheel_L" pos="-0.047 0 0.0196">
             <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.000001"/>
             <inertial mass="0.021477" pos="0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
-            <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1"/>
+            <geom type="cylinder" size="0.03 0.0055" rgba="0 0 0 0" 
+                  pos="0.0015 0 0" euler="0 90 0"
+                  solref="0.02 1" solimp="0.9 0.95 0.001" friction="1.6 0.005 0.0002" condim="6"
+                  contype="1" conaffinity="1" />
+            <geom type="mesh" mesh="wheel" contype="0" conaffinity="0" />
+            <!-- <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1" friction="1.6 0.005 0.0002" condim="6" solref="0.02 1" solimp="0.85 0.95 0.005"/> -->
             </body>
 
 
@@ -28,7 +33,12 @@
             <body name="wheel_R" pos="0.047 0 0.0196" euler="0 0 180">
             <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.000001"/>
             <inertial mass="0.021477" pos="-0.464e-3 0 0" diaginertia="1.2039e-5 6.234e-6 6.233e-6"/>
-            <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1" />
+            <geom type="cylinder" size="0.03 0.0055" rgba="0 0 0 0" 
+                  pos="0.0015 0 0" euler="0 90 0"
+                  solref="0.02 1" solimp="0.9 0.95 0.001" friction="1.6 0.005 0.0002" condim="6"
+                  contype="1" conaffinity="1" />
+            <geom type="mesh" mesh="wheel" contype="0" conaffinity="0" />
+            <!-- <geom type="mesh" mesh="wheel" rgba="0.8 0.8 0.85 1" pos="0 0 0" contype="1" conaffinity="1" friction="1.6 0.005 0.0002" condim="6" solref="0.02 1" solimp="0.85 0.95 0.005"/> -->
             </body>
         </body>
         
@@ -56,13 +66,13 @@
                  forcerange="-0.5 0.5" gear="1" forcelimited="true"/>
     </actuator>  -->
     <actuator>
-        <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.003"/>
-        <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.003"/>
+        <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.0065"/>
+        <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.0065"/>
     </actuator> 
-
+8
     <!-- センサー -->
     <sensor>
-        <accelerometer name="body_accel" site="imu_site" noise="0.01"/>
-        <gyro name="body_gyro" site="imu_site" noise="0.01"/>
+        <accelerometer name="body_accel" site="imu_site" noise="0.0"/>
+        <gyro name="body_gyro" site="imu_site" noise="0.0"/>
     </sensor>
 </mujoco>
