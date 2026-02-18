@@ -36,7 +36,7 @@ class RobotEnv(gym.Env):
         # --- 4. 制御系の設定 ---
         self.dt = self.model.opt.timestep * 10 # 10ステップ分
         self.filtered_roll = 0.0
-        self.alpha = 0.6
+        self.alpha = 0.98
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
@@ -47,7 +47,7 @@ class RobotEnv(gym.Env):
         gyro = self.data.sensor("body_gyro").data
         # 相補フィルタでroll推定
         accel_roll = np.arctan2(accel[1], accel[2])
-        gyro_roll_noise_std = 0.01
+        gyro_roll_noise_std = 0.0006
         gyro_roll = gyro[0] + np.random.normal(0, gyro_roll_noise_std)
         self.filtered_roll = self.alpha * (self.filtered_roll + gyro_roll * self.dt) + (1 - self.alpha) * accel_roll
 
@@ -102,18 +102,16 @@ class RobotEnv(gym.Env):
         reward = float(
             -0.1 * action**2 # アクションの大きさ
             -0.1 * action_penalty # actionの滑らかさ
-            -2.0 * error**2 # 角度ペナルティ
             -0.5 * obs[1]**2 # 角速度ペナルティ
-            -0.01 * obs[2]**2
-            -0.01 * obs[3]**2
-            # +5.0 * (abs(obs[0]) < 0.0872) # 倒立報酬(5度以内)
-            +10 # 生存報酬
+            -0.01 * obs[2]**2 # タイヤ速度ペナルティ
+            -0.01 * obs[3]**2 # タイヤ速度ペナルティ
+            +5.0 * (2 - abs(error)) # 角度報酬
         )
         self.pre_action = action.copy()
 
         # 終了判定 45度(0.78rad)より傾くと終了
         roll = obs[0] 
-        terminated = bool(abs(roll) > 0.78)
+        terminated = bool(abs(roll) > 0.785)
 
         truncated = False     # 時間切れならTrue
         info = {}             # おまけ情報

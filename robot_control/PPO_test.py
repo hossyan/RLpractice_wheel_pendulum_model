@@ -15,7 +15,7 @@ def sendTelemetry(name, value):
     sock.sendto(msg.encode(), teleplotAddr)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV2.zip")
 
 env = RobotEnv(xml_name="pendulum.xml")
 model = PPO.load(model_path, device="cuda")

@@ -27,7 +27,7 @@ if __name__ == "__main__":
         verbose=1,
         learning_rate=0.0003,
         n_steps=256, 
-        device="cuda",
+        device="cpu",
         tensorboard_log="./logs/"
     )
 

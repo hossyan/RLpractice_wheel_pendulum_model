@@ -48,6 +48,7 @@ def get_absolute_roll():
 
 def _get_robot_angle(dt):
     global filtered_roll
+    alpha = 0.98
     # センサデータの取得
     accel = data.sensor("body_accel").data
     gyro = data.sensor("body_gyro").data
@@ -55,7 +56,7 @@ def _get_robot_angle(dt):
     accel_roll = np.arctan2(accel[1], accel[2])
     gyro_roll_noise_std = 0.01
     gyro_roll = gyro[0] + np.random.normal(0, gyro_roll_noise_std)
-    filtered_roll = 0.8 * (filtered_roll + gyro_roll * dt) + (1 - 0.8) * accel_roll
+    filtered_roll = alpha * (filtered_roll + gyro_roll * dt) + (1 - alpha) * accel_roll
     filtered_deg = filtered_roll * 180 / np.pi
 
     return filtered_deg
@@ -64,7 +65,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         # タイマー
         now = time.perf_counter()
-        
         # pidコントローラ
         roll = get_absolute_roll()
         # dt = (now - pre_time) * 1000 # ミリ秒
