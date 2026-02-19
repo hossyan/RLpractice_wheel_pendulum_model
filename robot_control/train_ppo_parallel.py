@@ -13,25 +13,38 @@ def make_env(rank):
         return env
     return _init
 
+def linear_schedule(initial_value: float):
+    def func(progress_remaining: float) -> float:
+        return progress_remaining * initial_value
+    return func
+
 
 if __name__ == "__main__":
     env = SubprocVecEnv([make_env(i) for i in range(8)]) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+    load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV2.zip")
     # model = PPO.load(load_path, env=env, device="cuda")
+
+    policy_kwargs = dict(
+        log_std_init=-1.0,  # ここで初期のばらつきを指定
+    )
 
     model = PPO(
         "MlpPolicy", 
         env, 
         verbose=1,
-        learning_rate=0.0003,
+        learning_rate=linear_schedule(3e-4),
+        ent_coef=0.01,
         n_steps=256, 
+        clip_range=0.2,
+        max_grad_norm=0.3,
+        policy_kwargs=policy_kwargs,
         device="cpu",
         tensorboard_log="./logs/"
     )
 
-    print("GPUで学習を開始します。")
+    print("学習を開始します。")
     model.learn(total_timesteps=800000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))

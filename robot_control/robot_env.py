@@ -3,6 +3,7 @@ from gymnasium import spaces
 import numpy as np
 import mujoco
 import os
+import random
 
 class RobotEnv(gym.Env):
     def __init__(self, xml_name="pendulum.xml"):
@@ -37,6 +38,7 @@ class RobotEnv(gym.Env):
         self.dt = self.model.opt.timestep * 10 # 10ステップ分
         self.filtered_roll = 0.0
         self.alpha = 0.98
+        self.odom = 0.0
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
@@ -46,7 +48,8 @@ class RobotEnv(gym.Env):
         accel = self.data.sensor("body_accel").data
         gyro = self.data.sensor("body_gyro").data
         # 相補フィルタでroll推定
-        accel_roll = np.arctan2(accel[1], accel[2])
+        accel_roll_noise_std = 0.000005
+        accel_roll = np.arctan2(accel[1], accel[2]) + np.random.normal(0, accel_roll_noise_std)
         gyro_roll_noise_std = 0.0006
         gyro_roll = gyro[0] + np.random.normal(0, gyro_roll_noise_std)
         self.filtered_roll = self.alpha * (self.filtered_roll + gyro_roll * self.dt) + (1 - self.alpha) * accel_roll
@@ -70,7 +73,7 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
-        random_roll = self.np_random.uniform(low=-0.0, high=0.0)
+        random_roll = self.np_random.uniform(low=-0.1, high=0.1)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
 
@@ -81,31 +84,51 @@ class RobotEnv(gym.Env):
 
         # 変数初期化
         self.filtered_roll = 0.0
+        self.odom = 0.0
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
         
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        self.data.ctrl[0] = action * 0.0276
-        self.data.ctrl[1] = -action * 0.0276
+        action_std_noise = 0.0276 * 0.0016
 
-        # 10ms ごとに学習
-        for _ in range(10):
+        # 制御遅延
+        response_late = random.randint(0, 3)
+        for _ in range(response_late):
+            mujoco.mj_step(self.model, self.data)           
+
+        self.data.ctrl[0] = action * 0.0276 + np.random.normal(0, action_std_noise)
+        self.data.ctrl[1] = -action * 0.0276 + np.random.normal(0, action_std_noise)
+
+        for _ in range(10-response_late):
             mujoco.mj_step(self.model, self.data)           
 
         obs = self._get_obs()
         error = obs[4] - obs[0]
 
+        self.odom += 0.03 * obs[2] * self.dt # dL = rωdt
+
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
+        # reward = float(
+        #     -0.1 * action**2 # アクションの大きさ
+        #     -0.1 * action_penalty # actionの滑らかさ
+        #     -0.3 * obs[1]**2 # 角速度ペナルティ
+        #     -0.005 * obs[2]**2 # タイヤ速度ペナルティ
+        #     -0.005 * obs[3]**2 # タイヤ速度ペナルティ
+        #     +7.0 * (2 - abs(error)) # 角度報酬
+        # )
         reward = float(
-            -0.1 * action**2 # アクションの大きさ
-            -0.1 * action_penalty # actionの滑らかさ
-            -0.5 * obs[1]**2 # 角速度ペナルティ
-            -0.01 * obs[2]**2 # タイヤ速度ペナルティ
-            -0.01 * obs[3]**2 # タイヤ速度ペナルティ
-            +5.0 * (2 - abs(error)) # 角度報酬
+            # -0.1 * action**2 # アクションの大きさ
+            # -0.1 * action_penalty # actionの滑らかさ
+            # -3.0 * error**2
+            -1.5 * obs[1]**2 # 角速度ペナルティ
+            # -0.05 * obs[2]**2 # タイヤ速度ペナルティ
+            # -0.05 * obs[3]**2 # タイヤ速度ペナルティ
+            -3.0 * self.odom**2 # 移動距離ペナルティ
+            # +5.0 * (abs(error)<0.0872) # 角度報酬
+            +5.0 * (2 - abs(error))
         )
         self.pre_action = action.copy()
 
