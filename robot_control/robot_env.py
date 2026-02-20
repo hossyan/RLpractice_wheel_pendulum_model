@@ -39,6 +39,8 @@ class RobotEnv(gym.Env):
         self.filtered_roll = 0.0
         self.alpha = 0.98
         self.odom = 0.0
+        self.pre_l_wheel_vel = 0.0
+        self.pre_r_wheel_vel = 0.0
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
@@ -48,9 +50,9 @@ class RobotEnv(gym.Env):
         accel = self.data.sensor("body_accel").data
         gyro = self.data.sensor("body_gyro").data
         # 相補フィルタでroll推定
-        accel_roll_noise_std = 0.000005
+        accel_roll_noise_std = 0.00015
         accel_roll = np.arctan2(accel[1], accel[2]) + np.random.normal(0, accel_roll_noise_std)
-        gyro_roll_noise_std = 0.0006
+        gyro_roll_noise_std = 0.0008
         gyro_roll = gyro[0] + np.random.normal(0, gyro_roll_noise_std)
         self.filtered_roll = self.alpha * (self.filtered_roll + gyro_roll * self.dt) + (1 - self.alpha) * accel_roll
 
@@ -68,12 +70,17 @@ class RobotEnv(gym.Env):
         r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
         forward_input = 0.0
 
-        return np.array([roll_rad, gyro_rad, l_wheel_vel, r_wheel_vel, forward_input], dtype=np.float32)
+        obs = np.array([roll_rad, gyro_rad, self.pre_l_wheel_vel, self.pre_r_wheel_vel, forward_input], dtype=np.float32)
+
+        self.pre_l_wheel_vel = l_wheel_vel
+        self.pre_r_wheel_vel = r_wheel_vel
+
+        return obs
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
-        random_roll = self.np_random.uniform(low=-0.1, high=0.1)
+        random_roll = self.np_random.uniform(low=-0.15, high=0.15)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
 
@@ -86,15 +93,17 @@ class RobotEnv(gym.Env):
         self.filtered_roll = 0.0
         self.odom = 0.0
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        self.pre_l_wheel_vel = 0.0
+        self.pre_R_wheel_vel = 0.0
         
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        action_std_noise = 0.0276 * 0.0016
+        action_std_noise = 0.0213 * 0.003
 
         # 制御遅延
-        response_late = random.randint(0, 3)
+        response_late = random.randint(0, 5)
         for _ in range(response_late):
             mujoco.mj_step(self.model, self.data)           
 
@@ -111,23 +120,12 @@ class RobotEnv(gym.Env):
 
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
-        # reward = float(
-        #     -0.1 * action**2 # アクションの大きさ
-        #     -0.1 * action_penalty # actionの滑らかさ
-        #     -0.3 * obs[1]**2 # 角速度ペナルティ
-        #     -0.005 * obs[2]**2 # タイヤ速度ペナルティ
-        #     -0.005 * obs[3]**2 # タイヤ速度ペナルティ
-        #     +7.0 * (2 - abs(error)) # 角度報酬
-        # )
         reward = float(
             # -0.1 * action**2 # アクションの大きさ
-            # -0.1 * action_penalty # actionの滑らかさ
-            # -3.0 * error**2
-            -1.5 * obs[1]**2 # 角速度ペナルティ
-            # -0.05 * obs[2]**2 # タイヤ速度ペナルティ
-            # -0.05 * obs[3]**2 # タイヤ速度ペナルティ
-            -3.0 * self.odom**2 # 移動距離ペナルティ
-            # +5.0 * (abs(error)<0.0872) # 角度報酬
+            -0.1 * action_penalty # actionの滑らかさ
+            -2.0 * obs[1]**2 # 角速度ペナルティ
+            -0.01 * obs[2]**2 # タイヤ速度ペナルティ
+            -20.0 * self.odom**2 # 移動距離ペナルティ
             +5.0 * (2 - abs(error))
         )
         self.pre_action = action.copy()
@@ -137,6 +135,6 @@ class RobotEnv(gym.Env):
         terminated = bool(abs(roll) > 0.785)
 
         truncated = False     # 時間切れならTrue
-        info = {}             # おまけ情報
+        info = {"odom": self.odom}   # おまけ情報
 
         return obs, reward, terminated, truncated, info

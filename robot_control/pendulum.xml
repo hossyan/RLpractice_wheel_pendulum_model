@@ -13,12 +13,12 @@
         <body name="base" pos="0 0 0.012">
             <joint type="free"/>
             <inertial mass="0.235724" pos="-1.104e-5 1.555e-5 0.037677" diaginertia="2.064e-4 3.4e-4 2.129e-4"/>
-            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0" contype="1" conaffinity="1"/> 
+            <geom type="mesh" mesh="body" rgba="0.6 0.6 0.6 1" pos="0 0 0" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="1"/> 
             <site name="imu_site" pos="0 0 0.07"/>
         
         <!-- タイヤ左 -->
             <body name="wheel_L" pos="-0.047 0 0.0206">
-            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.000001"/>
+            <joint name="hinge_L" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.00005"/>
             <inertial mass="0.0198" pos="0.562e-3 0 0" diaginertia="1.1786e-5 6.092e-6 6.092e-6"/>
             <geom type="cylinder" size="0.031 0.0055" rgba="0 0 0 0" 
                   pos="0.0015 0 0" euler="0 90 0"
@@ -30,7 +30,7 @@
 
         <!-- タイヤ右 -->
             <body name="wheel_R" pos="0.047 0 0.0206" euler="0 0 180">
-            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.000001"/>
+            <joint name="hinge_R" type="hinge" axis="1 0 0" pos="0 0 0" damping="0.00005"/>
             <inertial mass="0.0198" pos="0.562e-3 0 0" diaginertia="1.1786e-5 6.092e-6 6.092e-6"/>
             <geom type="cylinder" size="0.031 0.0055" rgba="0 0 0 0" 
                   pos="0.0015 0 0" euler="0 90 0"
@@ -63,10 +63,23 @@
                  gaintype="fixed" gainprm="15" biastype="affine" biasprm="0 -15 0"
                  forcerange="-0.5 0.5" gear="1" forcelimited="true"/>
     </actuator>  -->
-    <actuator>
+    <!-- <actuator>
         <general name="wheel_hinge_left" joint="hinge_L" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.0055"/>
         <general name="wheel_hinge_right" joint="hinge_R" ctrlrange="-0.0276 0.0276" gear="1" ctrllimited="true" dyntype="filter" dynprm="0.0055"/>
-    </actuator> 
+    </actuator>  -->
+    <actuator>
+        <general name="wheel_hinge_left" joint="hinge_L" 
+                ctrlrange="-0.0213 0.0213" ctrllimited="true"
+                dyntype="filter" dynprm="0.0055"
+                gaintype="fixed" gainprm="1"
+                biastype="affine" biasprm="0 -0.000304"/>
+                
+        <general name="wheel_hinge_right" joint="hinge_R" 
+                ctrlrange="-0.0213 0.0213" ctrllimited="true"
+                dyntype="filter" dynprm="0.0055"
+                gaintype="fixed" gainprm="1"
+                biastype="affine" biasprm="0 -0.000304"/>
+    </actuator>
 8
     <!-- センサー -->
     <sensor>
