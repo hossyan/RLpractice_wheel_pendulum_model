@@ -69,18 +69,18 @@
     </actuator>  -->
     <actuator>
         <general name="wheel_hinge_left" joint="hinge_L" 
-                ctrlrange="-0.0213 0.0213" ctrllimited="true"
+                ctrlrange="-0.0233 0.0233" ctrllimited="true"
                 dyntype="filter" dynprm="0.0055"
                 gaintype="fixed" gainprm="1"
-                biastype="affine" biasprm="0 -0.000304"/>
+                biastype="affine" biasprm="0 -0.000333 0"/>
                 
         <general name="wheel_hinge_right" joint="hinge_R" 
-                ctrlrange="-0.0213 0.0213" ctrllimited="true"
+                ctrlrange="-0.0233 0.0233" ctrllimited="true"
                 dyntype="filter" dynprm="0.0055"
                 gaintype="fixed" gainprm="1"
-                biastype="affine" biasprm="0 -0.000304"/>
+                biastype="affine" biasprm="0 -0.000333 0"/>
     </actuator>
-8
+    
     <!-- センサー -->
     <sensor>
         <accelerometer name="body_accel" site="imu_site" noise="0.0"/>

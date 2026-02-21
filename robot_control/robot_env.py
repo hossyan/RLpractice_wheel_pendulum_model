@@ -4,6 +4,7 @@ import numpy as np
 import mujoco
 import os
 import random
+from collections import deque
 
 class RobotEnv(gym.Env):
     def __init__(self, xml_name="pendulum.xml"):
@@ -38,9 +39,12 @@ class RobotEnv(gym.Env):
         self.dt = self.model.opt.timestep * 10 # 10ステップ分
         self.filtered_roll = 0.0
         self.alpha = 0.98
-        self.odom = 0.0
-        self.pre_l_wheel_vel = 0.0
-        self.pre_r_wheel_vel = 0.0
+        self.odom = np.zeros(2)
+        self.latency_step = 3
+        # 指令値の履歴キュー
+        self.control_queue = deque([np.zeros(2)] * (self.latency_step + 1), maxlen=self.latency_step+1)
+        # エンコーダの履歴キュー
+        self.encoder_queue = deque([np.zeros(2)] * (self.latency_step + 1), maxlen=self.latency_step+1)
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
@@ -66,67 +70,97 @@ class RobotEnv(gym.Env):
         # 観測空間
         roll_rad = self._get_robot_angle()
         gyro_rad = gyro[0]
+
         l_wheel_vel = self.data.qvel[self.model.jnt_dofadr[self.l_wheel_id]]
         r_wheel_vel = -self.data.qvel[self.model.jnt_dofadr[self.r_wheel_id]]
+        self.encoder_queue.append(np.array([l_wheel_vel, r_wheel_vel]))
+        delay_wheel_vel = self.encoder_queue[0]
+
         forward_input = 0.0
 
-        obs = np.array([roll_rad, gyro_rad, self.pre_l_wheel_vel, self.pre_r_wheel_vel, forward_input], dtype=np.float32)
-
-        self.pre_l_wheel_vel = l_wheel_vel
-        self.pre_r_wheel_vel = r_wheel_vel
+        obs = np.array([roll_rad, gyro_rad, delay_wheel_vel[0], delay_wheel_vel[1], forward_input], dtype=np.float32)
 
         return obs
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
+        self.control_queue = deque([np.zeros(2)] * self.control_queue.maxlen, maxlen=self.control_queue.maxlen)
+        self.encoder_queue = deque([np.zeros(2)] * self.control_queue.maxlen, maxlen=self.control_queue.maxlen)
+
+        # 角度のランダム化
         random_roll = self.np_random.uniform(low=-0.15, high=0.15)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
-
         self.data.qpos[0:3] = [0, 0, 0.012]
         self.data.qpos[7:] = 0.0
 
+        # 2. 角速度のランダム化
+        # low, high の値は必要に応じて調整（単位: rad/s）
+        random_roll_vel = self.np_random.uniform(low=-3.0, high=3.0)
+        self.data.qvel[3] = random_roll_vel  # X軸周りの角速度 (Roll velocity)
+
+        # 状態の更新
         mujoco.mj_forward(self.model,self.data)
 
         # 変数初期化
         self.filtered_roll = 0.0
-        self.odom = 0.0
+        self.odom = np.zeros(2)
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
-        self.pre_l_wheel_vel = 0.0
-        self.pre_R_wheel_vel = 0.0
         
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        action_std_noise = 0.0213 * 0.003
+        # action_std_noise = 0.0233 * 0.002
+        # base_torque = action[0]*0.0233 + np.random.normal(0, action_std_noise)
+        # bias= 0.0021
 
-        # 制御遅延
-        response_late = random.randint(0, 5)
-        for _ in range(response_late):
-            mujoco.mj_step(self.model, self.data)           
+        # if base_torque > bias:
+        #     torque_l = base_torque-bias
+        #     torque_r = -(base_torque-bias)
+        # elif base_torque < -bias:
+        #     torque_l = base_torque+bias
+        #     torque_r = -(base_torque+bias)
+        # else:
+        #     torque_l = 0.0   
+        #     torque_r = 0.0   
 
-        self.data.ctrl[0] = action * 0.0276 + np.random.normal(0, action_std_noise)
-        self.data.ctrl[1] = -action * 0.0276 + np.random.normal(0, action_std_noise)
+        action_std_noise = 0.0212 * 0.002
+        base_torque = action[0]*0.0212 + np.random.normal(0, action_std_noise)
+        torque_l = base_torque
+        torque_r = -base_torque
+        
+        self.control_queue.append(np.array([torque_l, torque_r]))
+    
+        
+        delayed_ctrl = self.control_queue[0]
+        # self.data.ctrl[0] = delayed_ctrl[0] + np.random.normal(0, action_std_noise)
+        # self.data.ctrl[1] = delayed_ctrl[1] + np.random.normal(0, action_std_noise)
+        self.data.ctrl[0] = delayed_ctrl[0]
+        self.data.ctrl[1] = delayed_ctrl[1]
 
-        for _ in range(10-response_late):
+
+        # 制御遅延           
+        for _ in range(10):
             mujoco.mj_step(self.model, self.data)           
 
         obs = self._get_obs()
         error = obs[4] - obs[0]
 
-        self.odom += 0.03 * obs[2] * self.dt # dL = rωdt
+        self.odom[0] += 0.03 * obs[2] * self.dt # dL = rωdt
+        self.odom[1] += 0.03 * obs[3] * self.dt # dL = rωdt
+        wheel_odom = np.linalg.norm(self.odom)
 
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
         reward = float(
             # -0.1 * action**2 # アクションの大きさ
-            -0.1 * action_penalty # actionの滑らかさ
+            -0.01 * action_penalty # actionの滑らかさ
             -2.0 * obs[1]**2 # 角速度ペナルティ
             -0.01 * obs[2]**2 # タイヤ速度ペナルティ
-            -20.0 * self.odom**2 # 移動距離ペナルティ
-            +5.0 * (2 - abs(error))
+            -15.0 * self.odom[0]**2 # 移動距離ペナルティ
+            +10.0 * (2 - abs(error))
         )
         self.pre_action = action.copy()
 
@@ -135,6 +169,6 @@ class RobotEnv(gym.Env):
         terminated = bool(abs(roll) > 0.785)
 
         truncated = False     # 時間切れならTrue
-        info = {"odom": self.odom}   # おまけ情報
+        info = {}   # おまけ情報
 
         return obs, reward, terminated, truncated, info

@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3.zip")
 
 # モデルの読み込み
 model = PPO.load(model_path)
