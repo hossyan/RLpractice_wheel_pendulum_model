@@ -23,8 +23,8 @@ if __name__ == "__main__":
     env = SubprocVecEnv([make_env(i) for i in range(8)]) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV2.zip")
-    model = PPO.load(load_path, env=env, device="cuda")
+    load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3.zip")
+    model = PPO.load(load_path, env=env, device="cpu")
 
     policy_kwargs = dict(
         log_std_init=-0.5,  # ここで初期のばらつきを指定
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     model.learn(total_timesteps=800000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3")
+    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV4")
     model.save(save_path)
     print("学習が完了しました！")

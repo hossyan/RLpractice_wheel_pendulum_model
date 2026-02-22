@@ -15,7 +15,7 @@ def sendTelemetry(name, value):
     sock.sendto(msg.encode(), teleplotAddr)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3.zip")
+model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV4.zip")
 
 env = RobotEnv(xml_name="pendulum.xml")
 model = PPO.load(model_path, device="cuda")
@@ -24,7 +24,7 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
     obs, info = env.reset()    
     while viewer.is_running():
         action, _ = model.predict(obs, deterministic=True)
-        print(f"Action (L/R): {action}")
+        # print(f"Action (L/R): {action}")
         
         # if np.random.rand() < 0.02:
         #     push_force = np.random.uniform(-2.0, 2.0)
@@ -47,6 +47,8 @@ with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
         # sendTelemetry("odom", odom)
         sendTelemetry("action", a0)
         
+        print(obs[0], obs[1], obs[2], obs[3], obs[4], action[0])
+
         time.sleep(0.01)
         
         # 転んだらリセット

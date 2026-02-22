@@ -3,7 +3,7 @@ from stable_baselines3 import PPO
 import os
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum.zip")
+model_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV4.zip")
 
 
 # 1. 今まで学習したモデルを読み込む

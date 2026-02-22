@@ -49,6 +49,11 @@ class RobotEnv(gym.Env):
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
 
+        # コントローラ入力の設定
+        self.target_roll = 0.0
+        self.steps_since_target_change = 0.0
+        self.change_interval = 300
+
     def _get_robot_angle(self):
         # センサデータの取得
         accel = self.data.sensor("body_accel").data
@@ -76,7 +81,7 @@ class RobotEnv(gym.Env):
         self.encoder_queue.append(np.array([l_wheel_vel, r_wheel_vel]))
         delay_wheel_vel = self.encoder_queue[0]
 
-        forward_input = 0.0
+        forward_input = self.target_roll
 
         obs = np.array([roll_rad, gyro_rad, delay_wheel_vel[0], delay_wheel_vel[1], forward_input], dtype=np.float32)
 
@@ -107,29 +112,36 @@ class RobotEnv(gym.Env):
         self.filtered_roll = 0.0
         self.odom = np.zeros(2)
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        self.target_roll = 0.0
+        self.steps_since_target_change = 0.0
         
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        # action_std_noise = 0.0233 * 0.002
-        # base_torque = action[0]*0.0233 + np.random.normal(0, action_std_noise)
-        # bias= 0.0021
+        self.steps_since_target_change += 1
+        if self.steps_since_target_change >= self.change_interval:
+            self.target_roll = self.np_random.uniform(low=-0.2,high=0.2)
+            self.steps_since_target_change = 0
 
-        # if base_torque > bias:
-        #     torque_l = base_torque-bias
-        #     torque_r = -(base_torque-bias)
-        # elif base_torque < -bias:
-        #     torque_l = base_torque+bias
-        #     torque_r = -(base_torque+bias)
-        # else:
-        #     torque_l = 0.0   
-        #     torque_r = 0.0   
 
-        action_std_noise = 0.0212 * 0.002
-        base_torque = action[0]*0.0212 + np.random.normal(0, action_std_noise)
-        torque_l = base_torque
-        torque_r = -base_torque
+        # action_std_noise = 0.0212 * 0.002
+        # base_torque = action[0]*0.0212 + np.random.normal(0, action_std_noise)
+        # torque_l = base_torque
+        # torque_r = -base_torque
+        action_std_noise = 0.0233 * 0.002
+        base_torque = action[0]*0.0233 + np.random.normal(0, action_std_noise)
+        bias= 0.0021
+
+        if base_torque > bias:
+            torque_l = base_torque-bias
+            torque_r = -(base_torque-bias)
+        elif base_torque < -bias:
+            torque_l = base_torque+bias
+            torque_r = -(base_torque+bias)
+        else:
+            torque_l = 0.0   
+            torque_r = 0.0   
         
         self.control_queue.append(np.array([torque_l, torque_r]))
     
@@ -151,16 +163,18 @@ class RobotEnv(gym.Env):
         self.odom[0] += 0.03 * obs[2] * self.dt # dL = rωdt
         self.odom[1] += 0.03 * obs[3] * self.dt # dL = rωdt
         wheel_odom = np.linalg.norm(self.odom)
+        is_zero_target = 1.0 if abs(obs[4]) < 1e-6 else 0.0
 
         # 報酬
         action_penalty = np.sum(np.square(action - self.pre_action))
         reward = float(
             # -0.1 * action**2 # アクションの大きさ
             -0.01 * action_penalty # actionの滑らかさ
-            -2.0 * obs[1]**2 # 角速度ペナルティ
-            -0.01 * obs[2]**2 # タイヤ速度ペナルティ
-            -15.0 * self.odom[0]**2 # 移動距離ペナルティ
-            +10.0 * (2 - abs(error))
+            -2.5 * obs[1]**2 # 角速度ペナルティ
+            -0.001 * obs[2]**2 # タイヤ速度ペナルティ
+            -20.0 * (self.odom[0]**2) * is_zero_target # 移動距離ペナルティ
+            +8.0 * np.exp(-abs(error))
+            +2 # 生存報酬
         )
         self.pre_action = action.copy()
 
