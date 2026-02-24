@@ -42,13 +42,13 @@ if __name__ == "__main__":
     #     max_grad_norm=0.3,
     #     policy_kwargs=policy_kwargs,
     #     device="cpu",
-    #     tensorboard_log="./logs2/"
+    #     tensorboard_log="./logs3/"
     # )
 
     print("学習を開始します。")
     model.learn(total_timesteps=800000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV4")
+    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV5")
     model.save(save_path)
     print("学習が完了しました！")

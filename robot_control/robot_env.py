@@ -48,9 +48,10 @@ class RobotEnv(gym.Env):
 
         # --- 5. 報酬設定用変数の初期化 ---
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        self.pre_roll = 0.0
 
         # コントローラ入力の設定
-        self.target_roll = 0.0
+        self.target_forward_vel = 0.0
         self.steps_since_target_change = 0.0
         self.change_interval = 300
 
@@ -81,7 +82,7 @@ class RobotEnv(gym.Env):
         self.encoder_queue.append(np.array([l_wheel_vel, r_wheel_vel]))
         delay_wheel_vel = self.encoder_queue[0]
 
-        forward_input = self.target_roll
+        forward_input = self.target_forward_vel
 
         obs = np.array([roll_rad, gyro_rad, delay_wheel_vel[0], delay_wheel_vel[1], forward_input], dtype=np.float32)
 
@@ -102,7 +103,7 @@ class RobotEnv(gym.Env):
 
         # 2. 角速度のランダム化
         # low, high の値は必要に応じて調整（単位: rad/s）
-        random_roll_vel = self.np_random.uniform(low=-3.0, high=3.0)
+        random_roll_vel = self.np_random.uniform(low=-0.0, high=0.0)
         self.data.qvel[3] = random_roll_vel  # X軸周りの角速度 (Roll velocity)
 
         # 状態の更新
@@ -112,17 +113,20 @@ class RobotEnv(gym.Env):
         self.filtered_roll = 0.0
         self.odom = np.zeros(2)
         self.pre_action = np.zeros(self.action_space.shape, dtype=np.float32)
-        self.target_roll = 0.0
+        self.pre_roll
+        self.target_forward_vel = 0.0
         self.steps_since_target_change = 0.0
         
         obs = self._get_obs()
         return obs, {}
 
     def step(self, action):
-        self.steps_since_target_change += 1
-        if self.steps_since_target_change >= self.change_interval:
-            self.target_roll = self.np_random.uniform(low=-0.2,high=0.2)
-            self.steps_since_target_change = 0
+        # self.steps_since_target_change += 1
+        # if self.steps_since_target_change >= self.change_interval:
+        #     self.target_roll += 0.15
+        #     if self.target_roll > 0.15:
+        #         self.target_roll = -0.15
+        #     self.steps_since_target_change = 0
 
 
         # action_std_noise = 0.0212 * 0.002
@@ -158,7 +162,7 @@ class RobotEnv(gym.Env):
             mujoco.mj_step(self.model, self.data)           
 
         obs = self._get_obs()
-        error = obs[4] - obs[0]
+        error = obs[4] - obs[2]
 
         self.odom[0] += 0.03 * obs[2] * self.dt # dL = rωdt
         self.odom[1] += 0.03 * obs[3] * self.dt # dL = rωdt
@@ -166,17 +170,20 @@ class RobotEnv(gym.Env):
         is_zero_target = 1.0 if abs(obs[4]) < 1e-6 else 0.0
 
         # 報酬
-        action_penalty = np.sum(np.square(action - self.pre_action))
+        action_penalty = np.square(action - self.pre_action)
+        roll_penalty = np.square(obs[0] - self.pre_roll)
         reward = float(
-            # -0.1 * action**2 # アクションの大きさ
-            -0.01 * action_penalty # actionの滑らかさ
-            -2.5 * obs[1]**2 # 角速度ペナルティ
-            -0.001 * obs[2]**2 # タイヤ速度ペナルティ
-            -20.0 * (self.odom[0]**2) * is_zero_target # 移動距離ペナルティ
-            +8.0 * np.exp(-abs(error))
-            +2 # 生存報酬
+            # ペナルティ
+            -0.1 * action_penalty # actionの滑らかさ
+            -2.0 * roll_penalty*100 # rollの滑らかさ
+            -4.0 * obs[1]**2 # 角速度
+            -20.0 * abs(self.odom[0]) # 移動距離
+    
+            # 報酬
+            +7 * np.exp(-(error)**2)
         )
         self.pre_action = action.copy()
+        self.pre_roll = obs[0]
 
         # 終了判定 45度(0.78rad)より傾くと終了
         roll = obs[0] 
