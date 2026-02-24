@@ -95,7 +95,7 @@ class RobotEnv(gym.Env):
         self.encoder_queue = deque([np.zeros(2)] * self.control_queue.maxlen, maxlen=self.control_queue.maxlen)
 
         # 角度のランダム化
-        random_roll = self.np_random.uniform(low=-0.15, high=0.15)
+        random_roll = self.np_random.uniform(low=-0.1, high=0.1)
         quat = np.array([np.cos(random_roll/2), np.sin(random_roll/2), 0, 0])
         self.data.qpos[3:7] = quat
         self.data.qpos[0:3] = [0, 0, 0.012]
@@ -181,6 +181,7 @@ class RobotEnv(gym.Env):
     
             # 報酬
             +7 * np.exp(-(error)**2)
+            +1
         )
         self.pre_action = action.copy()
         self.pre_roll = obs[0]

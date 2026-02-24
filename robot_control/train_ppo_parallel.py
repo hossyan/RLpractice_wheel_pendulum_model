@@ -23,32 +23,32 @@ if __name__ == "__main__":
     env = SubprocVecEnv([make_env(i) for i in range(8)]) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3.zip")
-    model = PPO.load(load_path, env=env, device="cpu")
+    # load_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV3.zip")
+    # model = PPO.load(load_path, env=env, device="cpu")
 
     policy_kwargs = dict(
         log_std_init=-0.5,  # ここで初期のばらつきを指定
     )
 
-    # model = PPO(
-    #     "MlpPolicy", 
-    #     env, 
-    #     verbose=1,
-    #     # learning_rate=linear_schedule(3e-4),
-    #     learning_rate=3e-4,
-    #     ent_coef=0.01,
-    #     n_steps=256, 
-    #     clip_range=0.3,
-    #     max_grad_norm=0.3,
-    #     policy_kwargs=policy_kwargs,
-    #     device="cpu",
-    #     tensorboard_log="./logs3/"
-    # )
+    model = PPO(
+        "MlpPolicy", 
+        env, 
+        verbose=1,
+        # learning_rate=linear_schedule(3e-4),
+        learning_rate=3e-4,
+        ent_coef=0.01,
+        n_steps=256, 
+        clip_range=0.3,
+        max_grad_norm=0.3,
+        policy_kwargs=policy_kwargs,
+        device="cpu",
+        tensorboard_log="./logs4/"
+    )
 
     print("学習を開始します。")
-    model.learn(total_timesteps=800000) 
+    model.learn(total_timesteps=3000000) 
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulumV5")
+    save_path = os.path.join(script_dir, "..", "ppo_inverted_pendulum")
     model.save(save_path)
     print("学習が完了しました！")
